@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Pre-commit hook: Prevent committing workshop solution files
+# These files should always stay in their "ready for workshop" state
+
+# Files that should never be modified in commits
+PROTECTED_FILES=(
+    "cdk/lib/workshop-stack.ts"
+    "packages/marking-starter-lambda/src/application/use-cases/start-table-marking.use-case.ts"
+    "packages/lts-executor-lambda/src/application/use-cases/execute-marking-task.use-case.ts"
+    "packages/lts-executor-lambda/src/application/use-cases/execute-deletion-task.use-case.ts"
+    "packages/lts-executor-lambda/src/infrastructure/container.ts"
+    "packages/lts-executor-lambda/src/interfaces/lambda-handler.ts"
+    "packages/status-poller-lambda/src/application/use-cases/check-marking-status.use-case.ts"
+)
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only)
+
+# Check if any protected file is staged
+BLOCKED_FILES=""
+for file in "${PROTECTED_FILES[@]}"; do
+    if echo "$STAGED_FILES" | grep -q "^$file$"; then
+        BLOCKED_FILES="$BLOCKED_FILES\n  - $file"
+    fi
+done
+
+if [ -n "$BLOCKED_FILES" ]; then
+    echo ""
+    echo "🛑 COMMIT BLOCKED: Workshop-Dateien dürfen nicht committed werden!"
+    echo ""
+    echo "Diese Dateien sollen im 'ready for workshop' Zustand bleiben:"
+    echo -e "$BLOCKED_FILES"
+    echo ""
+    echo "Optionen:"
+    echo "  1. Änderungen rückgängig machen:"
+    echo "     git checkout -- <file>"
+    echo ""
+    echo "  2. Falls du WIRKLICH committen musst (z.B. Bug-Fix im Template):"
+    echo "     git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+exit 0

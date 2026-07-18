@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.js
+*.d.ts
+!**/scripts/*.js
+!eslint.config.ts
+!vitest.config.ts
+
+# CDK
+cdk.out/
+.cdk.staging/
+
+# Environment
+.env
+.env.local
+
+# Workshop State
+.workshop-state/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+.workshop-backup/
+
+# Generated artifacts (never commit)
+lambda.zip
+repomix-output.xml

@@ -1,0 +1,29 @@
+{
+  "name": "cdk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CDK Stack for Workshop",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "deploy": "cdk deploy --require-approval never",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.204.0",
+    "constructs": "^10.4.2",
+    "dotenv": "^17.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "aws-cdk": "^2.1033.0",
+    "aws-cdk-local": "^3.0.1",
+    "esbuild": "^0.25.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

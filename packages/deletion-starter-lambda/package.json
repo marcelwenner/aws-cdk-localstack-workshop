@@ -1,0 +1,22 @@
+{
+  "name": "deletion-starter-lambda",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DeletionStarter Lambda - PRE-BUILT for E2E Flow",
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/interfaces/lambda-handler.ts --format esm --clean",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "contracts": "workspace:*",
+    "database-adapter-postgres": "workspace:*",
+    "queue-adapter-sqs": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/aws-lambda": "^8.10.145",
+    "tsup": "^8.2.0",
+    "typescript": "^5.8.3"
+  }
+}

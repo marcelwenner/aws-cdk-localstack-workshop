@@ -1,0 +1,80 @@
+services:
+  localstack:
+    container_name: workshop-localstack
+    # WICHTIG: gepinnt auf das letzte Community-Release!
+    # Ab 2026.3.0 verlangt localstack/localstack:latest einen Auth-Token
+    # (LOCALSTACK_AUTH_TOKEN), auch für Community-Features → Startabbruch (Exit 55).
+    image: localstack/localstack:4.9.2
+    ports:
+      - "4566:4566"
+    environment:
+      # Nur Community-Services! (ecr wäre Pro und lässt neuere LocalStack-Versionen
+      # mit Lizenzfehler crashen)
+      SERVICES: s3,sqs,sts,lambda,iam,logs,events,cloudformation,ssm,secretsmanager
+      DEBUG: ${LOCALSTACK_DEBUG:-0}
+      DOCKER_HOST: unix:///var/run/docker.sock
+      LOCALSTACK_HOST: ${LOCALSTACK_HOST:-localhost}
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "workshop-localstack-data:/var/lib/localstack"
+    networks:
+      - workshop
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    container_name: workshop-postgres
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-longtermstorage}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - "workshop-postgres-data:/var/lib/postgresql/data"
+      - "./sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql"
+      - "./sql/tables:/docker-entrypoint-initdb.d/02-tables"
+      - "./sql/functions:/docker-entrypoint-initdb.d/03-functions"
+      # Postgres ignoriert Unterverzeichnisse in initdb.d - dieses Skript führt sie aus!
+      - "./sql/run-dirs.sh:/docker-entrypoint-initdb.d/04-run-dirs.sh"
+    networks:
+      - workshop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backup-service:
+    container_name: workshop-backup-service
+    build:
+      context: ./backup-mock-service
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: longtermstorage
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      LOCALSTACK_ENDPOINT: http://localstack:4566
+    networks:
+      - workshop
+
+networks:
+  workshop:
+    driver: bridge
+
+volumes:
+  workshop-localstack-data:
+    name: workshop-localstack-data
+  workshop-postgres-data:
+    name: workshop-postgres-data

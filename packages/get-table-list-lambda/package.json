@@ -1,0 +1,21 @@
+{
+  "name": "get-table-list-lambda",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GetTableList Lambda - PRE-BUILT Reference Implementation",
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/interfaces/lambda-handler.ts --format esm --clean",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "contracts": "workspace:*",
+    "database-adapter-postgres": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/aws-lambda": "^8.10.145",
+    "tsup": "^8.2.0",
+    "typescript": "^5.8.3"
+  }
+}

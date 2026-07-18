@@ -1,0 +1,26 @@
+{
+  "name": "lts-executor-lambda",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LtsExecutor Lambda - TODO Phase 3 (Worker Pattern)",
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/interfaces/lambda-handler.ts --format esm --clean",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "contracts": "workspace:*",
+    "database-adapter-postgres": "workspace:*",
+    "queue-adapter-sqs": "workspace:*",
+    "@aws-sdk/client-sqs": "^3.600.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/aws-lambda": "^8.10.145",
+    "tsup": "^8.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

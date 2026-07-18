@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main, develop]
+
+jobs:
+  lint-and-type-check:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check circular dependencies
+        run: pnpm run check:circular
+
+      - name: Build workspace dependencies (required for type-check)
+        run: pnpm run build:deps
+
+      - name: Type check
+        run: pnpm run type-check
+
+      - name: Lint (if available)
+        run: pnpm run lint || echo "No lint script found, skipping"
+        continue-on-error: true
+
+      - name: Format check
+        run: pnpm run format:check || echo "No format:check script found, skipping"
+        continue-on-error: true
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace dependencies
+        run: pnpm run build:deps
+
+      # Note: `pnpm run test` (all packages) is intentionally red on a fresh
+      # clone - lambda package tests only pass once workshop phases are
+      # implemented. CI runs the always-green infrastructure tests.
+      - name: Run unit tests
+        run: pnpm run test:ci
+
+  e2e-tests:
+    name: E2E Golden Path
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start LocalStack + Postgres (workshop compose)
+        run: docker compose -f local/docker-compose.yml up -d --wait
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check AWS CLI (preinstalled on runners)
+        run: aws --version
+
+      - name: Configure AWS CLI for LocalStack
+        run: |
+          aws configure set aws_access_key_id test
+          aws configure set aws_secret_access_key test
+          aws configure set region us-east-1
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for LocalStack..."
+          for i in {1..30}; do
+            if aws --endpoint-url=http://localhost:4566 s3 ls 2>/dev/null; then
+              echo "LocalStack is ready"
+              break
+            fi
+            echo "Attempt $i: LocalStack not ready yet..."
+            sleep 2
+          done
+
+          echo "Waiting for Postgres..."
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres 2>/dev/null; then
+              echo "Postgres is ready"
+              break
+            fi
+            echo "Attempt $i: Postgres not ready yet..."
+            sleep 2
+          done
+
+      - name: Build workshop CLI
+        run: pnpm run workshop:build
+
+      - name: Run E2E tests
+        run: pnpm run test:e2e

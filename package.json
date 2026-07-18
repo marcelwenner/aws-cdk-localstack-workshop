@@ -1,0 +1,63 @@
+{
+  "name": "aws-cdk-localstack-workshop",
+  "version": "1.0.0",
+  "description": "AWS CDK & LocalStack Workshop - Serverless-Architekturen lokal entwickeln",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marcelwenner/aws-cdk-localstack-workshop.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "postinstall": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "workshop": "pnpm --filter workshop-cli run workshop",
+    "workshop:dev": "pnpm --filter workshop-cli run workshop:dev",
+    "workshop:build": "pnpm --filter workshop-cli run build",
+    "workshop:reset": "pnpm --filter workshop-cli run reset",
+    "docker:up": "docker compose -f local/docker-compose.yml up -d",
+    "docker:down": "docker compose -f local/docker-compose.yml down",
+    "docker:logs": "docker compose -f local/docker-compose.yml logs -f",
+    "build": "pnpm run build:deps && pnpm run --recursive --if-present build",
+    "build:deps": "pnpm --filter contracts run build && pnpm --filter database-adapter-postgres run build && pnpm --filter queue-adapter-sqs run build",
+    "build:workshop-cli": "pnpm --filter workshop-cli run build",
+    "test": "pnpm run --recursive --if-present test",
+    "test:ci": "pnpm --filter workshop-cli run test && pnpm --filter marking-starter-lambda run test && pnpm --filter cdk run test",
+    "lint": "pnpm run --recursive --if-present lint",
+    "type-check": "pnpm run --recursive --if-present type-check && pnpm run type-check:solutions",
+    "type-check:solutions": "tsc -p solutions",
+    "type-check:workshop-cli": "pnpm --filter workshop-cli exec tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
+    "fast-deploy": "tsx scripts/fast-deploy.ts",
+    "check:circular": "tsx scripts/check-circular-deps.ts",
+    "test:e2e": "pnpm --filter workshop-cli run e2e",
+    "clean": "pnpm run --recursive --if-present clean",
+    "demo:gif": "cd tools/demo-recorder && npm install --no-audit --no-fund && node record-demo.mjs"
+  },
+  "devDependencies": {
+    "@types/archiver": "^7.0.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.35.0",
+    "@typescript-eslint/parser": "^8.35.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "archiver": "^7.0.1",
+    "eslint": "^9.29.0",
+    "eslint-config-prettier": "^10.1.5",
+    "jiti": "^2.4.2",
+    "madge": "^8.0.0",
+    "prettier": "^3.6.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.204.0",
+    "constructs": "^10.4.2",
+    "dotenv": "^17.1.0"
+  }
+}

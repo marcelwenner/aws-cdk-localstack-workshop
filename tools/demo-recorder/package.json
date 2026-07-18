@@ -1,0 +1,17 @@
+{
+  "name": "demo-recorder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Records the README demo gif: node-pty + xterm.js + Playwright video, ffmpeg gif conversion",
+  "scripts": {
+    "record": "node record-demo.mjs"
+  },
+  "dependencies": {
+    "@lydell/node-pty": "^1.2.0-beta.12",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "playwright-core": "^1.61.1",
+    "ws": "^8.21.0"
+  }
+}
