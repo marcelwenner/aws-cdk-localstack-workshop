@@ -607,8 +607,16 @@ export async function validateCdkForPhase(phase: number): Promise<CdkError[]> {
   // ==========================================================================
   const blockContent = block.content;
 
-  // Check if there are still /* or */ markers that need to be removed
-  if (blockContent.includes('/*') || blockContent.includes('*/')) {
+  // Check if there are still /* or */ markers that need to be removed.
+  // Line comments may mention the markers in their text (the TODO steps do),
+  // so only lines that are not // comments count.
+  const hasStrayBlockMarkers = blockContent.split('\n').some(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('//')) return false;
+    return trimmed.includes('/*') || trimmed.includes('*/');
+  });
+
+  if (hasStrayBlockMarkers) {
     errors.push({
       type: 'PARTIAL_UNCOMMENT',
       phase,
