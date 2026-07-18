@@ -406,6 +406,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     },
     throughput,
     serviceStates: getServiceStates(),
+    connectionStatus: metrics.connectionStatus,
     // Live backoff data for phase 4 (delayed = Messages die mit DelaySeconds warten)
     ...(phase >= 4 && {
       backoff: {

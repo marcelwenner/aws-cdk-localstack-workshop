@@ -25,6 +25,12 @@ export interface CinematicMetrics {
     inFlight: number;
     online: boolean;
   };
+  /**
+   * Connection state of the metrics poll. When provided, events and error
+   * particles start only after the first connected poll, so leftover queue
+   * contents from earlier runs don't fire fake events on mount.
+   */
+  connectionStatus?: 'checking' | 'connected' | 'disconnected';
 }
 
 export interface CinematicDiagramProps {
@@ -99,7 +105,10 @@ export const CinematicDiagram: React.FC<CinematicDiagramProps> = ({
 
   // Track DLQ changes for error particles
   const prevDlqRef = useRef(metrics.queue.dlqDepth);
-  const dlqDelta = metrics.queue.dlqDepth - prevDlqRef.current;
+  const hasBaselineRef = useRef(false);
+  const dlqDelta = hasBaselineRef.current
+    ? metrics.queue.dlqDepth - prevDlqRef.current
+    : 0;
 
   useEffect(() => {
     prevDlqRef.current = metrics.queue.dlqDepth;
@@ -127,6 +136,16 @@ export const CinematicDiagram: React.FC<CinematicDiagramProps> = ({
   const prevMetricsRef = useRef(metrics);
 
   useEffect(() => {
+    // The first connected poll only sets the baseline: leftover queue or
+    // DLQ contents from earlier runs are existing state, not fresh events
+    if (!hasBaselineRef.current) {
+      prevMetricsRef.current = metrics;
+      if (metrics.connectionStatus === undefined || metrics.connectionStatus === 'connected') {
+        hasBaselineRef.current = true;
+      }
+      return;
+    }
+
     const prev = prevMetricsRef.current;
 
     // Detect metric changes and create events
