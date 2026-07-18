@@ -507,7 +507,7 @@ export const InteractiveCodeTour: React.FC<Props> = ({ steps, onComplete }) => {
               <Text bold>Live-Beweis</Text>
 
               {cliEquivalent && (
-                <Text dimColor>$ {cliEquivalent}</Text>
+                <Text dimColor wrap="truncate-end">$ {cliEquivalent}</Text>
               )}
 
               {proofStatus === 'idle' && (
@@ -528,8 +528,10 @@ export const InteractiveCodeTour: React.FC<Props> = ({ steps, onComplete }) => {
 
               {proofStatus === 'success' && (
                 <Box marginTop={1} flexDirection="column" flexGrow={1} overflow="hidden">
-                  <Box flexGrow={1} overflow="hidden">
-                    <Text color="green">{output.split('\n').slice(0, 8).join('\n')}</Text>
+                  <Box flexGrow={1} overflow="hidden" flexDirection="column">
+                    {output.split('\n').slice(0, 8).map((line, idx) => (
+                      <Text key={`out-${idx}`} color="green" wrap="truncate-end">{line}</Text>
+                    ))}
                   </Box>
                   <Box>
                     <Text bold color="green">
@@ -541,8 +543,10 @@ export const InteractiveCodeTour: React.FC<Props> = ({ steps, onComplete }) => {
 
               {proofStatus === 'error' && (
                 <Box marginTop={1} flexDirection="column" flexGrow={1} overflow="hidden">
-                  <Box flexGrow={1} overflow="hidden">
-                    <Text color="red">{output.split('\n').slice(0, 8).join('\n')}</Text>
+                  <Box flexGrow={1} overflow="hidden" flexDirection="column">
+                    {output.split('\n').slice(0, 8).map((line, idx) => (
+                      <Text key={`err-${idx}`} color="red" wrap="truncate-end">{line}</Text>
+                    ))}
                   </Box>
                   <Box>
                     <Text bold color="yellow">
