@@ -11,8 +11,9 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { useFileWatcher } from '../hooks/useFileWatcher.js';
+import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import {
   validateCdkForPhase,
   getCdkEditInstructions,
@@ -52,11 +53,11 @@ export const CdkGuideScreen: React.FC<CdkGuideScreenProps> = ({
   const config = PHASE_LAMBDAS[phase];
   const cdkPath = getCdkStackPath();
 
-  // Get terminal size for scrolling
-  const { stdout } = useStdout();
-  const terminalRows = stdout?.rows || 24;
+  // Reactive terminal size: useStdout alone never triggers a re-render
+  // on resize, so the guide would stay stuck at its opening size
+  const terminalSize = useTerminalSize();
   // Reserve space for header (~4), file link (1), footer (2), padding (2)
-  const maxVisibleLines = Math.max(5, terminalRows - 9);
+  const maxVisibleLines = Math.max(5, terminalSize.rows - 9);
 
   // Validate CDK on mount and file changes
   // Validates ALL phases up to current phase (cumulative)

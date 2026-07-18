@@ -77,27 +77,42 @@ export function useArchitectureMetrics({
 
       if (!mountedRef.current) return;
 
-      setMetrics({
-        queue: {
-          status: result.status,
-          depth: result.depth,
-          inFlight: result.inFlight,
-          dlqDepth: result.dlqDepth,
-          delayed: result.delayed ?? 0,
-        },
-        workerActive: result.inFlight > 0,
-        connectionStatus: result.status === 'error' ? 'disconnected' : 'connected',
-        lastUpdate: new Date(),
-        polling: true,
+      setMetrics(prev => {
+        const next: ArchitectureMetrics = {
+          queue: {
+            status: result.status,
+            depth: result.depth,
+            inFlight: result.inFlight,
+            dlqDepth: result.dlqDepth,
+            delayed: result.delayed ?? 0,
+          },
+          workerActive: result.inFlight > 0,
+          connectionStatus: result.status === 'error' ? 'disconnected' : 'connected',
+          lastUpdate: new Date(),
+          polling: true,
+        };
+
+        // Unchanged values keep the same reference so idle polls
+        // don't repaint the whole dashboard every second
+        const unchanged =
+          prev.polling === next.polling &&
+          prev.workerActive === next.workerActive &&
+          prev.connectionStatus === next.connectionStatus &&
+          prev.queue.status === next.queue.status &&
+          prev.queue.depth === next.queue.depth &&
+          prev.queue.inFlight === next.queue.inFlight &&
+          prev.queue.dlqDepth === next.queue.dlqDepth &&
+          prev.queue.delayed === next.queue.delayed;
+
+        return unchanged ? prev : next;
       });
     } catch {
       if (!mountedRef.current) return;
 
-      setMetrics(prev => ({
-        ...prev,
-        connectionStatus: 'disconnected',
-        polling: true,
-      }));
+      setMetrics(prev => {
+        if (prev.connectionStatus === 'disconnected' && prev.polling) return prev;
+        return { ...prev, connectionStatus: 'disconnected', polling: true };
+      });
     }
   }, [queueName]);
 

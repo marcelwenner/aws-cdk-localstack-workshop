@@ -114,6 +114,10 @@ export function useParticleSystem(config: ParticleSystemConfig): ParticleSystemS
       frameCountRef.current++;
 
       setParticles(prev => {
+        // Idle: keep the same reference so React skips the re-render
+        // (otherwise the dashboard repaints 20x/s while nothing moves)
+        if (prev.length === 0) return prev;
+
         // Move existing particles
         let updated = prev.map(p => ({
           ...p,

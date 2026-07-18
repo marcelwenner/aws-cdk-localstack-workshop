@@ -47,15 +47,14 @@ function formatPhaseTime(phaseTimes: Record<number, PhaseTime>, currentPhase: nu
   const diffMs = now.getTime() - start.getTime();
   const hours = Math.floor(diffMs / 3600000);
   const minutes = Math.floor((diffMs % 3600000) / 60000);
-  const seconds = Math.floor((diffMs % 60000) / 1000);
 
+  // Minute granularity: a seconds display changes the frame every second,
+  // which forces a full repaint of the whole layout (Ink rewrites the
+  // frame on any output change)
   if (hours > 0) {
     return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
   }
-  if (minutes > 0) {
-    return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
-  }
-  return `${seconds}s`;
+  return `${minutes}m`;
 }
 
 /**
@@ -71,7 +70,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [elapsed, setElapsed] = useState('0m');
   const [phaseElapsed, setPhaseElapsed] = useState('0m');
-  const [watchPulse, setWatchPulse] = useState(true);
 
   // Update elapsed time every second (for seconds display)
   useEffect(() => {
@@ -88,17 +86,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [startTime, phaseTimes, currentPhase]);
-
-  // Watcher pulse animation
-  useEffect(() => {
-    if (!watcherState?.watching || !watcherState?.active) return;
-
-    const interval = setInterval(() => {
-      setWatchPulse(p => !p);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [watcherState?.watching, watcherState?.active]);
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1} height="100%">
@@ -140,7 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </Box>
 
           <Box>
-            <Text color={watcherState.watching ? (watchPulse ? 'green' : 'gray') : 'gray'}>
+            <Text color={watcherState.watching ? 'green' : 'gray'}>
               {watcherState.watching ? '👁 ' : '○ '}
             </Text>
             <Text color={watcherState.watching ? 'green' : 'gray'}>
