@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import React, { useState, useRef, useEffect } from 'react';
+import { Box, Text, useInput, measureElement, type DOMElement } from 'ink';
 import { PhaseTutorial } from '../lib/tutorials/tutorial.types.js';
 import { SelectPrompt } from '../components/prompts/SelectPrompt.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
@@ -9,8 +9,10 @@ interface PhaseTutorialScreenProps {
   onBack: () => void;
 }
 
-// Minimum terminal height for tutorials (rows)
-const MIN_HEIGHT = 30;
+// Below this the content viewport degenerates; warn but allow continuing
+const MIN_HEIGHT = 15;
+// Rows used by warning bar, header, section title and footer
+const CHROME_ROWS = 8;
 
 type TutorialState = 'sections' | 'completed' | 'hints';
 
@@ -22,10 +24,32 @@ export const PhaseTutorialScreen: React.FC<PhaseTutorialScreenProps> = ({
   const [tutorialState, setTutorialState] = useState<TutorialState>('sections');
   const [hintLevel, setHintLevel] = useState(0);
   const [dismissedWarning, setDismissedWarning] = useState(false);
+  const [scroll, setScroll] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const contentRef = useRef<DOMElement>(null);
   const terminalSize = useTerminalSize();
 
   const isTooSmall = terminalSize.rows < MIN_HEIGHT;
   const isInWarningScreen = isTooSmall && !dismissedWarning;
+
+  const viewportRows = Math.max(5, terminalSize.rows - CHROME_ROWS);
+  const maxScroll = Math.max(0, contentHeight - viewportRows);
+
+  // Section content height drives the scroll range; wrapping changes with
+  // terminal width, so re-measure on resize too
+  useEffect(() => {
+    if (contentRef.current) {
+      setContentHeight(measureElement(contentRef.current).height);
+    }
+  }, [section, tutorialState, terminalSize.columns, terminalSize.rows]);
+
+  useEffect(() => {
+    setScroll(0);
+  }, [section, tutorialState]);
+
+  useEffect(() => {
+    setScroll(prev => Math.min(prev, maxScroll));
+  }, [maxScroll]);
 
   // Keyboard shortcuts for tutorial navigation
   useInput((input, key) => {
@@ -35,6 +59,23 @@ export const PhaseTutorialScreen: React.FC<PhaseTutorialScreenProps> = ({
     const lowerInput = input.toLowerCase();
 
     if (tutorialState === 'sections') {
+      // Scroll within a section
+      if (key.upArrow) {
+        setScroll(prev => Math.max(0, prev - 1));
+        return;
+      }
+      if (key.downArrow) {
+        setScroll(prev => Math.min(maxScroll, prev + 1));
+        return;
+      }
+      if (key.pageUp) {
+        setScroll(prev => Math.max(0, prev - viewportRows));
+        return;
+      }
+      if (key.pageDown) {
+        setScroll(prev => Math.min(maxScroll, prev + viewportRows));
+        return;
+      }
       // Section navigation
       if (lowerInput === 'w' || key.rightArrow) {
         // Weiter
@@ -152,7 +193,7 @@ export const PhaseTutorialScreen: React.FC<PhaseTutorialScreenProps> = ({
           </Box>
         </Box>
 
-        {/* BODY - Content Area */}
+        {/* BODY - Content Area (fixed viewport, scrolls with ↑/↓) */}
         <Box flexGrow={1} flexDirection="column">
           <Box marginBottom={1} flexShrink={0}>
             <Text bold underline color="magenta">
@@ -160,20 +201,21 @@ export const PhaseTutorialScreen: React.FC<PhaseTutorialScreenProps> = ({
             </Text>
           </Box>
 
-          {/* Content */}
-          <Box flexDirection="column" flexGrow={1} paddingRight={1}>
-            {/* Architecture diagram for first section */}
-            {section === 0 && tutorial.architecture && (
-              <Box flexDirection="column" marginBottom={1} flexShrink={0}>
-                <Text bold color="cyan">🏗️ Architektur:</Text>
-                <Box borderStyle="single" borderColor="cyan" padding={1} marginY={1} flexShrink={0}>
-                  <Text dimColor>{tutorial.architecture}</Text>
+          <Box height={viewportRows} overflow="hidden" flexDirection="column">
+            <Box ref={contentRef} flexDirection="column" flexShrink={0} marginTop={-scroll} paddingRight={1}>
+              {/* Architecture diagram for first section */}
+              {section === 0 && tutorial.architecture && (
+                <Box flexDirection="column" marginBottom={1} flexShrink={0}>
+                  <Text bold color="cyan">🏗️ Architektur:</Text>
+                  <Box borderStyle="single" borderColor="cyan" padding={1} marginY={1} flexShrink={0}>
+                    <Text dimColor>{tutorial.architecture}</Text>
+                  </Box>
                 </Box>
+              )}
+              {/* Section content */}
+              <Box flexDirection="column" flexShrink={0}>
+                {currentSection.content}
               </Box>
-            )}
-            {/* Section content */}
-            <Box flexDirection="column" flexShrink={0}>
-              {currentSection.content}
             </Box>
           </Box>
         </Box>
@@ -204,6 +246,12 @@ export const PhaseTutorialScreen: React.FC<PhaseTutorialScreenProps> = ({
             <Text color="gray" bold>[ESC]</Text>
             <Text dimColor> Tutorial beenden</Text>
           </Text>
+          {maxScroll > 0 && (
+            <Text>
+              <Text color="cyan" bold>[↑↓]</Text>
+              <Text dimColor> Scrollen {scroll >= maxScroll ? '⤒' : `${Math.round(((scroll + viewportRows) / contentHeight) * 100)}%`}</Text>
+            </Text>
+          )}
           <Box flexGrow={1} />
           <Text dimColor>
             {section + 1}/{totalSections}
