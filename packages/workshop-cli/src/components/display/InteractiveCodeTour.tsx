@@ -15,6 +15,7 @@ import { Box, Text, useInput, useApp } from 'ink';
 import Spinner from 'ink-spinner';
 import { highlight } from 'cli-highlight';
 import type { ProofResult, ExperimentResult, ExperimentStep } from '../../lib/tour-helpers.js';
+import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 
 // Re-export ExperimentResult for backwards compatibility
 export type { ExperimentResult } from '../../lib/tour-helpers.js';
@@ -77,6 +78,7 @@ type ExperimentState =
 
 export const InteractiveCodeTour: React.FC<Props> = ({ steps, onComplete }) => {
   const { exit } = useApp();
+  const terminalSize = useTerminalSize();
   const [stepIndex, setStepIndex] = useState(0);
   const [proofStatus, setProofStatus] = useState<ProofStatus>('idle');
   const [output, setOutput] = useState('');
@@ -256,6 +258,9 @@ export const InteractiveCodeTour: React.FC<Props> = ({ steps, onComplete }) => {
   const highlightedCode = highlight(currentStep.code.trim(), { language: 'typescript' });
   const codeLines = highlightedCode.split('\n');
 
+  // Narrow terminals: stack the panels instead of squeezing them side by side
+  const stacked = terminalSize.columns < 110;
+
   return (
     <Box flexDirection="column" padding={1}>
       {/* Header - no border, just styled text */}
@@ -313,9 +318,9 @@ export const InteractiveCodeTour: React.FC<Props> = ({ steps, onComplete }) => {
         )}
       </Box>
 
-      <Box flexDirection="row" minHeight={12}>
+      <Box flexDirection={stacked ? 'column' : 'row'} minHeight={12}>
         {/* LEFT: Code Panel */}
-        <Box flexDirection="column" width="55%" paddingRight={1}>
+        <Box flexDirection="column" width={stacked ? '100%' : '55%'} paddingRight={stacked ? 0 : 1}>
           <Box
             borderStyle="round"
             borderColor="gray"
@@ -333,6 +338,7 @@ export const InteractiveCodeTour: React.FC<Props> = ({ steps, onComplete }) => {
                 return (
                   <Box key={`code-${idx}`}>
                     <Text
+                      wrap="truncate-end"
                       backgroundColor={isHighlighted ? '#3d3d00' : undefined}
                       color={isHighlighted ? 'yellow' : undefined}
                     >
@@ -346,7 +352,7 @@ export const InteractiveCodeTour: React.FC<Props> = ({ steps, onComplete }) => {
         </Box>
 
         {/* RIGHT: Proof/Experiment Panel */}
-        <Box flexDirection="column" width="45%">
+        <Box flexDirection="column" width={stacked ? '100%' : '45%'} marginTop={stacked ? 1 : 0}>
           {/* Experiment Available Banner */}
           {hasExperiment && !experimentState && proofStatus === 'idle' && (
             <Box
