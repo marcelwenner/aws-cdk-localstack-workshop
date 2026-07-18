@@ -72,6 +72,16 @@ export interface CdkDiff {
 
 const CDK_STACK_PATH = 'cdk/lib/workshop-stack.ts';
 
+// Tests point these at a temp copy so they never touch the real stack
+// file or a participant's backups.
+let stackPathOverride: string | null = null;
+let backupDirOverride: string | null = null;
+
+export function overrideCdkPathsForTests(paths: { stackPath: string; backupDir: string } | null): void {
+  stackPathOverride = paths?.stackPath ?? null;
+  backupDirOverride = paths?.backupDir ?? null;
+}
+
 // Lambda definitions per phase with expected code patterns
 export const PHASE_LAMBDAS: Record<number, {
   name: string;
@@ -150,7 +160,7 @@ const EXPECTED_LINE_COUNTS: Record<number, { min: number; max: number }> = {
  * Get the full path to the CDK stack file
  */
 export function getCdkStackPath(): string {
-  return join(getProjectRoot(), CDK_STACK_PATH);
+  return stackPathOverride ?? join(getProjectRoot(), CDK_STACK_PATH);
 }
 
 /**
@@ -500,7 +510,7 @@ function removeBlockComments(content: string, block: CdkBlock): string {
  * Create a backup of the CDK stack before modification
  */
 async function backupCdkStack(phase: number): Promise<void> {
-  const backupDir = join(getBackupDir(), `cdk-phase${phase}`);
+  const backupDir = join(backupDirOverride ?? getBackupDir(), `cdk-phase${phase}`);
   const backupPath = join(backupDir, 'workshop-stack.ts');
 
   await mkdir(backupDir, { recursive: true });
@@ -511,7 +521,7 @@ async function backupCdkStack(phase: number): Promise<void> {
  * Restore CDK stack from backup
  */
 export async function restoreCdkStack(phase: number): Promise<boolean> {
-  const backupPath = join(getBackupDir(), `cdk-phase${phase}`, 'workshop-stack.ts');
+  const backupPath = join(backupDirOverride ?? getBackupDir(), `cdk-phase${phase}`, 'workshop-stack.ts');
 
   try {
     await stat(backupPath);
