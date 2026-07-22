@@ -131,12 +131,24 @@ export default class Phase6Validator extends BaseValidator {
       }
 
       const deadline = Date.now() + 90_000;
+      const pendingDeadline = Date.now() + 15_000; // early-out wenn Worker sofort crasht
       for (;;) {
         const res = await db.query('SELECT status FROM lts.deletion_tasks WHERE id = $1', [taskId]);
         const status = res.rows[0]?.status;
         if (status === 'COMPLETED') break;
         if (status === 'FAILED') {
           return { passed: false, hints: [`L4: Task ${taskId} ist FAILED - Worker-Logs prüfen ([L])`] };
+        }
+        if (status === 'PENDING' && Date.now() > pendingDeadline) {
+          return {
+            passed: false,
+            hints: [
+              `L4: Task ${taskId} ist nach 15s noch PENDING - der Worker crasht sofort`,
+              '    → Ist ExecuteDeletionTaskUseCase in Phase 3 implementiert?',
+              '    → packages/lts-executor-lambda/src/application/use-cases/execute-deletion-task.use-case.ts',
+              '    Nach der Implementierung: cdklocal deploy neu ausführen',
+            ],
+          };
         }
         if (Date.now() > deadline) {
           return {
